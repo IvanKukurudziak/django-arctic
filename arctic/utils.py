@@ -112,6 +112,7 @@ def view_from_url(named_url):  # noqa
     current_path = None
     resolved_path = []
     ns_pattern = ''
+    ns_converters = {}
 
     while path:
         ns = path.pop()
@@ -140,6 +141,10 @@ def view_from_url(named_url):  # noqa
             extra, resolver = resolver.namespace_dict[ns]
             resolved_path.append(ns)
             ns_pattern = ns_pattern + extra
+            try:
+                ns_converters.update(resolver.pattern.converters)
+            except Exception:
+                pass
         except KeyError as key:
             if resolved_path:
                 raise NoReverseMatch(
@@ -149,7 +154,11 @@ def view_from_url(named_url):  # noqa
                 raise NoReverseMatch("%s is not a registered namespace" %
                                      key)
     if ns_pattern:
-        resolver = get_ns_resolver(ns_pattern, resolver)
+        try:
+            resolver = get_ns_resolver(ns_pattern, resolver,
+                                       tuple(ns_converters.items()))
+        except Exception:
+            resolver = get_ns_resolver(ns_pattern, resolver)
 
     # custom code, get view from reverse_dict
     reverse_dict = resolver.reverse_dict.dict()
